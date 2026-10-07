@@ -9,7 +9,7 @@ Reemplazar las letras por los nombres. Esta tabla es la base de la **tabla de ap
 | **C** — Yerko Morales | `app/auth.py` (login, hash, token) | `tests/test_auth.py` (CP-10 a CP-13) | Criterio 5: confiabilidad, ética y Ley 21.459 |
 | **D** — Widjy Marcellus | `app/rutas_kilometraje.py` (registro y validaciones) | `tests/test_kilometraje.py` (CP-14 a CP-19) | Criterio 7: plan y ejecución de pruebas |
 | **E** — Felipe Aravena | `app/repositorio.py`, `app/seed.py`, `app/rutas_estado.py` | `tests/test_estado.py` (CP-20 y CP-21) | Criterios 2 y 4: retrospectiva de proceso y tendencias cloud |
-| **F** — _nombre_ | `app/permisos.py` (RBAC), `.github/workflows/pruebas.yml` | `tests/test_seguridad.py` (CP-22 a CP-26) | Criterios 6 y 8: OWASP, bitácora de defectos e ISO 27000 |
+| **F** — Jhon | `app/permisos.py` (RBAC), `.github/workflows/pruebas.yml` | `tests/test_seguridad.py` (CP-22 a CP-26) | Criterios 6 y 8: OWASP, bitácora de defectos e ISO 27000 |
 
 El criterio 9 (integración y revisión final del informe) lo cierra todo el grupo el martes 13.
 
