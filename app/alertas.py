@@ -32,15 +32,18 @@ class SujetoCamion:
 
     def suscribir(self, observador: ObservadorMantencion) -> None:
         # TODO (B): agregar el observador sin duplicarlo.
-        raise NotImplementedError("suscribir pendiente")
+        if observador not in self._observadores:
+            self._observadores.append(observador)
 
     def desuscribir(self, observador: ObservadorMantencion) -> None:
         # TODO (B): quitar el observador si esta suscrito.
-        raise NotImplementedError("desuscribir pendiente")
+        if observador in self._observadores:
+            self._observadores.remove(observador)
 
     def notificar(self, proxima: ProximaMantencion) -> None:
         # TODO (B): llamar a actualizar() de cada observador.
-        raise NotImplementedError("notificar pendiente")
+        for observador in self._observadores:
+            observador.actualizar(self.camion, proxima)
 
 
 class NotificadorJefeFlota(ObservadorMantencion):
