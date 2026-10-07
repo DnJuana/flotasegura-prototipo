@@ -4,7 +4,7 @@ Reemplazar las letras por los nombres. Esta tabla es la base de la **tabla de ap
 
 | Integrante | Código | Pruebas | Sección del informe |
 |---|---|---|---|
-| **A** — _nombre_ | `app/estrategias.py` (Strategy) | `tests/test_estrategias.py` (CP-01 a CP-05) | Criterio 1: justificación del módulo, trazabilidad y patrones |
+| **A** — Benjamin Jofre | `app/estrategias.py` (Strategy) | `tests/test_estrategias.py` (CP-01 a CP-05) | Criterio 1: justificación del módulo, trazabilidad y patrones |
 | **B** — _nombre_ | `app/alertas.py` (Observer) | `tests/test_alertas.py` (CP-06 a CP-09) | Criterio 3: UML actualizados y registro de cambios |
 | **C** — _nombre_ | `app/auth.py` (login, hash, token) | `tests/test_auth.py` (CP-10 a CP-13) | Criterio 5: confiabilidad, ética y Ley 21.459 |
 | **D** — _nombre_ | `app/rutas_kilometraje.py` (registro y validaciones) | `tests/test_kilometraje.py` (CP-14 a CP-19) | Criterio 7: plan y ejecución de pruebas |
