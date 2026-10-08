@@ -21,7 +21,7 @@ def test_cp_06_al_cruzar_umbral_se_alerta_a_jefe_y_conductor(db_conexion):
     sujeto.suscribir(NotificadorJefeFlota(db_conexion))
     sujeto.suscribir(NotificadorConductor(db_conexion))
     
-    proxima= ProximaMantencion(estado="alerta_temprana", kilometraje_restante=500)
+    proxima= ProximaMantencion(pla_id = 1, tipo = "aceite", estado="alerta_temprana", km_restantes=500)
     sujeto.notificar(proxima)
     
     #verificamos que se hayan guardado las alertas en la BD
@@ -43,7 +43,7 @@ def test_cp_07_camion_sin_conductor_solo_alerta_al_jefe(db_conexion):
     sujeto.suscribir(NotificadorJefeFlota(db_conexion))
     sujeto.suscribir(NotificadorConductor(db_conexion))
      
-    proxima = ProximaMantencion(estado="Mantencion_vencida", kilometraje_restante =-100)
+    proxima = ProximaMantencion(plan_id=2, tipo="frenos", estado="Mantencion_vencida", km_restantes =-100)
     sujeto.notificar(proxima)
     
     #solo debe de existir 1 alerta (la del jefe de flota, ya que no hay conductores)
@@ -66,7 +66,7 @@ def test_cp_08_observador_desuscrito_no_recibe_alerta(db_conexion):
     sujeto.suscribir(observador)
     sujeto.desuscribir(observador)
     
-    proxima = ProximaMantencion(estado = "alerta_temprana", kilometraje_restante = 200)
+    proxima = ProximaMantencion(plan_id =3, tipo="neumaticos" "alerta_temprana", km_restante = 200)
     sujeto.notificar(proxima)
     
     cursor = db_conexion.cursor()
@@ -82,8 +82,8 @@ def test_cp_09_peor_estado_entre_varios_planes():
     Entrada: un plan operativo y otro vencido. Esperado: mantencion_vencida.
     """
     planes=[
-        ProximaMantencion(estado="operativo", kilometraje_restante=5000),
-        ProximaMantencion(estado="mantencion_vencida", kilometraje_restante=-10)
+        ProximaMantencion(plan_id=1, tipo="aceite", estado="operativo", km_restante=5000),
+        ProximaMantencion(plan_id=2, tipo="frenos", estado="mantencion_vencida", km_restante=-10)
     ]
     
     resultado= peor_estado(planes)
