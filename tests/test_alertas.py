@@ -11,15 +11,17 @@ from app.estrategias import ProximaMantencion
 
 def test_cp_06_al_cruzar_umbral_se_alerta_a_jefe_y_conductor(conexion):
     """CP-06 | Funcional | RF4
-    cursor = conexion.cursor()
-    cursor.execute("INSERT OR IGNORE INTO usuarios (id, nombre_usuario, nombre_completo, hash_contrasena, rol) VALUES (1, 'jefe', 'Jefe Flota', 'hash', 'jefe_flota')")
-    cursor.execute("INSERT OR IGNORE INTO usuarios (id, nombre_usuario, nombre_completo, hash_contrasena, rol) VALUES (10, 'conductor1', 'Juan Perez', 'hash', 'conductor')")
-    cursor.execute("INSERT OR IGNORE INTO camiones (id, patente, km_actual, estado, conductor_id) VALUES (1, 'ABCD-12', 5000, 'operativo', 10)")
-    cursor.execute("INSERT OR IGNORE INTO planes_mantencion (id, camion_id, tipo, tipo_calculo) VALUES (1, 1, 'aceite', 'km')")
-    conexion.commit()
 
     Entrada: notificar() con los dos notificadores suscritos. Esperado: una alerta para el jefe de flota y otra para el conductor.
     """
+    cursor = conexion.cursor()
+    cursor.execute("INSERT OR REPLACE INTO usuarios (id, nombre_usuario, nombre_completo, hash_contrasena, rol) VALUES (1, 'jefe', 'Jefe Flota', 'hash', 'jefe_flota')")
+    cursor.execute("INSERT OR REPLACE INTO usuarios (id, nombre_usuario, nombre_completo, hash_contrasena, rol) VALUES (10, 'conductor1', 'Juan Perez', 'hash', 'conductor')")
+    cursor.execute("INSERT OR REPLACE INTO camiones (id, patente, km_actual, estado, conductor_id) VALUES (1, 'ABCD-12', 5000, 'operativo', 10)")
+    cursor.execute("INSERT OR REPLACE INTO planes_mantencion (id, camion_id, tipo, tipo_calculo) VALUES (1, 1, 'aceite', 'km')")
+    conexion.commit()
+
+
     
     camion = {"id":1,"patente": "ABCD-12", "conductor_id": 10}
     sujeto = SujetoCamion(camion)
@@ -77,7 +79,7 @@ def test_cp_08_observador_desuscrito_no_recibe_alerta(conexion):
     cursor.execute("INSERT OR IGNORE INTO usuarios (id, nombre_usuario, nombre_completo, hash_contrasena, rol) VALUES (5, 'conductor2', 'Pedro', 'hash', 'conductor')")
     cursor.execute("INSERT OR IGNORE INTO camiones (id, patente, km_actual, estado, conductor_id) VALUES (3, 'TEST-03', 2000, 'operativo', 5)")
     cursor.execute("INSERT OR IGNORE INTO planes_mantencion (id, camion_id, tipo, tipo_calculo) VALUES (3, 3, 'neumaticos', 'km')")
-    conexion.commit()
+    conexion.commit()   
     
     camion = {"id": 3, "patente": "TEST-03", "conductor_id": 5}
     sujeto= SujetoCamion(camion)
