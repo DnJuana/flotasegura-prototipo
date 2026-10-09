@@ -57,8 +57,8 @@ class NotificadorJefeFlota:
         cursor = self.conexion.cursor()
         mensaje = f"Alerta para jefe de Flota: Camion {camion['patente']} en estado {plan_mantencion.estado} "
         cursor.execute(
-            "INSERT INTO alertas (camion_id, mensaje) VALUES (?,?)",
-            (camion['id'], mensaje)
+            "INSERT INTO alertas (camion_id, plan_id, mensaje) VALUES (?,?,?)",
+            (camion['id'],plan_mantencion.plan_id, mensaje)
         )
         self.conexion.commit()
 
@@ -76,7 +76,7 @@ class NotificadorConductor:
         cursor = self.conexion.cursor()
         mensaje = f"Estimado conductor, su camión {camion['patente']} requiere atención: {plan_mantencion.estado}"
         cursor.execute(
-            "INSERT INTO alertas (camion_id, mensaje) VALUES(?,?)",(camion['id'], mensaje)
+            "INSERT INTO alertas (camion_id,plan_id, mensaje) VALUES(?,?,?)",(camion['id'], plan_mantencion.plan_id, mensaje)
         )
         self.conexion.commit()
 
