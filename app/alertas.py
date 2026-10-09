@@ -54,14 +54,13 @@ class NotificadorJefeFlota:
 
     def actualizar(self, camion, plan_mantencion):
         # TODO (B): insertar en la tabla alertas (usar consultas parametrizadas).
-        cursor = self.db.cursor()
-        mensaje = f"Alerta para jefe de Flota: Camion {camion['patente']} en estado{plan_mantencion.estado} "
+        cursor = self.conexion.cursor()
+        mensaje = f"Alerta para jefe de Flota: Camion {camion['patente']} en estado {plan_mantencion.estado} "
         cursor.execute(
             "INSERT INTO alertas (camion_id, mensaje, tipo) VALUES (?,?,?)",
             (camion['id'], mensaje, plan_mantencion.estado)
         )
-        self.db.commit()
-        raise NotImplementedError("NotificadorJefeFlota pendiente")
+        self.conexion.commit()
 
 
 class NotificadorConductor:
@@ -79,17 +78,19 @@ class NotificadorConductor:
         cursor.execute(
             "INSERT INTO alertas (camion_id, mensaje, tipo) VALUES(?,?,?)",(camion['id'], mensaje , plan_mantencion.estado)
         )
-        self.db.commit()
+        self.conexion.commit()
 
 
 def peor_estado(planes):
     """Estado del camion = el peor estado entre todos sus planes"""
     if not planes:
         return "operativo"
+    
     orden_prioridad ={
         "mantencion_vencida": 3,
         "alerta_temprana": 2,
         "operativo": 1  
     }
-    peor = max(planes, Key=lambda p: orden_prioridad.ge(p.estado, 0))
+    
+    peor = max(planes, Key=lambda p: orden_prioridad.get(p.estado, 0))
     return peor.estado
