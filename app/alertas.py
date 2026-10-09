@@ -92,5 +92,5 @@ def peor_estado(planes):
         "operativo": 1  
     }
     
-    peor = max(planes, Key=lambda p: orden_prioridad.get(p.estado, 0))
+    peor = max(planes, key=lambda p: orden_prioridad.get(p.estado, 0))
     return peor.estado
