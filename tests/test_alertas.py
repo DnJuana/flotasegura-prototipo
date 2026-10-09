@@ -59,14 +59,14 @@ def test_cp_08_observador_desuscrito_no_recibe_alerta(conexion):
 
     Entrada: suscribir, desuscribir y notificar. Esperado: cero alertas para ese observador.
     """
-    camion = {"id": 3, "patente": "TEST-03", " conductor_id": 5}
+    camion = {"id": 3, "patente": "TEST-03", "conductor_id": 5}
     sujeto= SujetoCamion(camion)
     
     observador = NotificadorJefeFlota(conexion)
     sujeto.suscribir(observador)
     sujeto.desuscribir(observador)
     
-    proxima = ProximaMantencion(plan_id =3, tipo="neumaticos" "alerta_temprana", km_restantes = 200)
+    proxima = ProximaMantencion(plan_id =3, tipo="neumaticos", estado="alerta_temprana", km_restantes = 200)
     sujeto.notificar(proxima)
     
     cursor = conexion.cursor()
