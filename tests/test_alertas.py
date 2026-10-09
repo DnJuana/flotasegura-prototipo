@@ -14,22 +14,22 @@ def test_cp_06_al_cruzar_umbral_se_alerta_a_jefe_y_conductor(conexion):
 
     Entrada: notificar() con los dos notificadores suscritos. Esperado: una alerta para el jefe de flota y otra para el conductor.
     """
-    camion = {"id":1,"patente": "ABC-12", "conductor_id": 10}
+    camion = {"id":1,"patente": "ABCD-12", "conductor_id": 10}
     sujeto = SujetoCamion(camion)
     
     #suscribimos ambos observadores
     sujeto.suscribir(NotificadorJefeFlota(conexion))
     sujeto.suscribir(NotificadorConductor(conexion))
     
-    proxima= ProximaMantencion(pla_id = 1, tipo = "aceite", estado="alerta_temprana", km_restantes=500)
+    proxima= ProximaMantencion(plan_id = 1, tipo = "aceite", estado="alerta_temprana", km_restantes=500)
     sujeto.notificar(proxima)
     
     #verificamos que se hayan guardado las alertas en la BD
-    curso = conexion.curso()
-    curso.execute("SELECT COUNT(*) FROM alertas WHERE camion_id = ?", (1,))
-    total_alerta = curso.fetchone()[0]
+    cursor= conexion.cursor()
+    cursor.execute("SELECT COUNT(*) FROM alertas WHERE camion_id = ?", (1,))
+    total_alertas = cursor.fetchone()[0]
     
-    assert total_alerta == 2
+    assert total_alertas == 2
 
 
 def test_cp_07_camion_sin_conductor_solo_alerta_al_jefe(conexion):
@@ -43,7 +43,7 @@ def test_cp_07_camion_sin_conductor_solo_alerta_al_jefe(conexion):
     sujeto.suscribir(NotificadorJefeFlota(conexion))
     sujeto.suscribir(NotificadorConductor(conexion))
      
-    proxima = ProximaMantencion(plan_id=2, tipo="frenos", estado="Mantencion_vencida", km_restantes =-100)
+    proxima = ProximaMantencion(plan_id=2, tipo="frenos", estado="mantencion_vencida", km_restantes =-100)
     sujeto.notificar(proxima)
     
     #solo debe de existir 1 alerta (la del jefe de flota, ya que no hay conductores)
@@ -70,7 +70,7 @@ def test_cp_08_observador_desuscrito_no_recibe_alerta(conexion):
     sujeto.notificar(proxima)
     
     cursor = conexion.cursor()
-    cursor.execute("SELECT COUND(*) FROM alertas WHERE camion_id = ?",(3,))
+    cursor.execute("SELECT COUNT(*) FROM alertas WHERE camion_id = ?",(3,))
     total_alertas = cursor.fetchone()[0]
     
     assert total_alertas == 0

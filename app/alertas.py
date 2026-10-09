@@ -26,53 +26,70 @@ class ObservadorMantencion(ABC):
 class SujetoCamion:
     """Sujeto del patron: mantiene la lista de observadores de un camion."""
 
-    def __init__(self, camion: dict):
-        self.camion = camion
-        self._observadores: list[ObservadorMantencion] = []
+    def __init__(self, camion_dict):
+        self.camion = camion_dict
+        self._observadores= []
 
-    def suscribir(self, observador: ObservadorMantencion) -> None:
+    def suscribir(self, observador):
         # TODO (B): agregar el observador sin duplicarlo.
         if observador not in self._observadores:
             self._observadores.append(observador)
 
-    def desuscribir(self, observador: ObservadorMantencion) -> None:
+    def desuscribir(self, observador):
         # TODO (B): quitar el observador si esta suscrito.
         if observador in self._observadores:
             self._observadores.remove(observador)
 
-    def notificar(self, proxima: ProximaMantencion) -> None:
+    def notificar(self, plan_mantencion):
         # TODO (B): llamar a actualizar() de cada observador.
         for observador in self._observadores:
-            observador.actualizar(self.camion, proxima)
+            observador.actualizar(self.camion, plan_mantencion)
 
 
-class NotificadorJefeFlota(ObservadorMantencion):
+class NotificadorJefeFlota:
     """Guarda una alerta dirigida a cada usuario con rol jefe_flota."""
 
-    def __init__(self, conexion):
-        self.conexion = conexion
+    def __init__(self, db_conexion):
+        self.conexion = db_conexion
 
-    def actualizar(self, camion: dict, proxima: ProximaMantencion) -> None:
+    def actualizar(self, camion, plan_mantencion):
         # TODO (B): insertar en la tabla alertas (usar consultas parametrizadas).
+        cursor = self.db.cursor()
+        mensaje = f"Alerta para jefe de Flota: Camion {camion['patente']} en estado{plan_mantencion.estado} "
+        cursor.execute(
+            "INSERT INTO alertas (camion_id, mensaje, tipo) VALUES (?,?,?)",
+            (camion['id'], mensaje, plan_mantencion.estado)
+        )
+        self.db.commit()
         raise NotImplementedError("NotificadorJefeFlota pendiente")
 
 
-class NotificadorConductor(ObservadorMantencion):
+class NotificadorConductor:
     """Guarda una alerta dirigida al conductor asignado al camion."""
 
-    def __init__(self, conexion):
-        self.conexion = conexion
+    def __init__(self, db_conexion):
+        self.conexion = db_conexion
 
-    def actualizar(self, camion: dict, proxima: ProximaMantencion) -> None:
-        # TODO (B): insertar en la tabla alertas. Si el camion no tiene
-        # conductor asignado, no se genera alerta para conductor.
-        raise NotImplementedError("NotificadorConductor pendiente")
+    def actualizar(self, camion, plan_mantencion):
+        # TODO (B): insertar en la tabla alertas. Si el camion no tiene 
+        if not camion.get('conductor_id'):
+            return 
+        cursor = self.db.cursor()
+        mensaje = f"Estimado conductor, su camión {camion['patente']} requiere atención: {plan_mantencion.estado}"
+        cursor.execute(
+            "INSERT INTO alertas (camion_id, mensaje, tipo) VALUES(?,?,?)",(camion['id'], mensaje , plan_mantencion.estado)
+        )
+        self.db.commit()
 
 
-def peor_estado(resultados: list[ProximaMantencion]) -> str:
-    """Estado del camion = el peor estado entre todos sus planes.
-
-    TODO (B): mantencion_vencida > alerta_temprana > operativo.
-    Una lista vacia equivale a 'operativo'.
-    """
-    raise NotImplementedError("peor_estado pendiente")
+def peor_estado(planes):
+    """Estado del camion = el peor estado entre todos sus planes"""
+    if not planes:
+        return "operativo"
+    orden_prioridad ={
+        "mantencion_vencida": 3,
+        "alerta_temprana": 2,
+        "operativo": 1  
+    }
+    peor = max(planes, Key=lambda p: orden_prioridad.ge(p.estado, 0))
+    return peor.estado
