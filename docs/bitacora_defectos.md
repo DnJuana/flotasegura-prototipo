@@ -66,3 +66,8 @@ Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`ap
 - **Estado**: Resuelto y Verificado.
 - **Evidencia**: Tras la corrección y el reenvío de los cambios al repositorio remoto, todas las pruebas unitarias asociadas al Patrón Observer (`CP-06`, `CP-07`, `CP-08`, `CP-09`) completaron su ejecución con éxito, obteniendo el estado de compilación aprobada en GitHub Actions.
 
+#### 5. Evidencias
+* **Prueba Fallando:**
+  ![Prueba fallando](evidencias/cp06_fallando.png)
+* **Prueba Pasando (Verde):**
+  ![Prueba pasando](evidencias/cp06_pasando.png)
