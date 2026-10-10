@@ -42,7 +42,7 @@ Este documento registra los defectos encontrados durante el ciclo de pruebas uni
 
 ---
 ### Error de inicialización en ProximaMantencion
-* **Responsable / Integrante:** Michael Ravelo (Integrante B)
+* **Responsable / Integrante:** Michael Rabelo (Integrante B)
 * **Módulo:** `app/alertas.py` (Patrón Observer)
 * **Descripción:** ...
 ### DEF-01: Incompatibilidad en columnas de inserción y restricciones de Llaves Foráneas (FK) en la tabla `alertas`

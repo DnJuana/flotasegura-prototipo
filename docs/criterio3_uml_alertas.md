@@ -1,5 +1,5 @@
 # Criterio 3: UML Actualizados y Registro de Cambios - Módulo de Alertas (Observer)
-* **Autor:** Michael Ravelo (Integrante B)
+* **Autor:** Michael Rabelo (Integrante B)
 * **Módulo:** Alertas y Patrón Observer
 
 ## 1. Diagrama de Clases (Patrón Observer - RF4)
