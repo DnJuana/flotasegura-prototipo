@@ -41,7 +41,10 @@ Copiar este bloque por cada defecto.
 Este documento registra los defectos encontrados durante el ciclo de pruebas unitarias e integración, siguiendo las directrices de trazabilidad del proyecto.
 
 ---
-
+### Error de inicialización en ProximaMantencion
+* **Responsable / Integrante:** Michael Rabelo (Integrante B)
+* **Módulo:** `app/alertas.py` (Patrón Observer)
+* **Descripción:** ...
 ### DEF-01: Incompatibilidad en columnas de inserción y restricciones de Llaves Foráneas (FK) en la tabla `alertas`
 
 - **Fecha de Detección**: Octubre de 2026
