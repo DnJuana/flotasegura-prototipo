@@ -1,4 +1,4 @@
-"""Configuracion comun de las pruebas. Archivo base: ya esta listo.
+"""Configuracion comun de las pruebas. Archivo base.
 
 Cada prueba recibe una aplicacion con una base de datos SQLite nueva y
 vacia (solo las tablas), creada en una carpeta temporal.
@@ -31,5 +31,14 @@ def conexion(app):
     return get_db()
 
 
-# TODO (E): cuando seed.cargar_datos() este listo, agregar aqui un fixture
-# "datos" que lo ejecute, para que las pruebas partan con usuarios y camiones.
+@pytest.fixture
+def datos(conexion):
+    """Carga los datos de prueba de app/seed.py (4 usuarios, 4 camiones, 8 planes).
+
+    Las pruebas que la pidan parten con la base poblada; las que no, siguen
+    recibiendo la base vacia. Devuelve la misma conexion.
+    """
+    from app.seed import cargar_datos
+
+    cargar_datos(conexion)
+    return conexion
