@@ -1,4 +1,6 @@
 # Criterio 3: UML Actualizados y Registro de Cambios - Módulo de Alertas (Observer)
+* **Autor:** Michael Ravelo (Integrante B)
+* **Módulo:** Alertas y Patrón Observer
 
 ## 1. Diagrama de Clases (Patrón Observer - RF4)
 A continuación se presenta el diagrama de clases actualizado que modela el servicio de notificaciones y persistencia de alertas:
