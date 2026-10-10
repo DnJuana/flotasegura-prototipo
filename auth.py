@@ -333,10 +333,22 @@ def login(username: str, password: str) -> str:
 # RBAC - CONTROL DE ACCESO POR ROLES
 # ============================================================
 
-def require_role(
-    token: str,
-    allowed_roles: List[str]
-) -> Dict:
+def require_role(token: str, allowed_roles: List[str]) -> Dict:
+    """
+    Valida el token y verifica que el usuario tenga
+    uno de los roles autorizados.
+    """
+
+    payload = validate_token(token)
+
+    role = payload["role"]
+
+    if role not in allowed_roles:
+        raise PermissionDeniedError(
+            f"Acceso denegado para el rol '{role}'."
+        )
+
+    return payload
     """
     Comprueba primero la autenticación y posteriormente
     verifica si el rol puede utilizar la funcionalidad.
