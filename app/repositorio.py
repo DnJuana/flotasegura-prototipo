@@ -1,13 +1,6 @@
-"""Acceso a datos: todas las consultas SQL del prototipo.
+﻿"""Acceso a datos: todas las consultas SQL del prototipo.
 
 Responsable: Integrante E (Felipe Aravena).
-
-Reglas de este archivo:
-  - Las consultas siempre usan parametros (?). Nunca se arma el SQL
-    concatenando texto que viene del usuario (previene inyeccion SQL).
-  - Las funciones de lectura devuelven dict (o None si no hay fila), no
-    sqlite3.Row, porque el resto del codigo usa camion.get("conductor_id")
-    y eso solo existe en dict.
 """
 from .db import get_db
 
@@ -28,20 +21,22 @@ def buscar_usuario_por_nombre(nombre_usuario: str):
 
 
 def buscar_camion(camion_id: int):
-    """Devuelve el camion (dict) o None si no existe."""
-    fila = get_db().execute(
-        "SELECT id, patente, km_actual, estado, conductor_id "
-        "FROM camiones WHERE id = ?",
-        (camion_id,),
-    ).fetchone()
-    return _a_dict(fila)
+    """Devuelve el camion (dict) o None si no existe o excede rangos de SQLite."""
+    if camion_id > 2_147_483_647 or camion_id < 0:
+        return None
+    try:
+        fila = get_db().execute(
+            "SELECT id, patente, km_actual, estado, conductor_id "
+            "FROM camiones WHERE id = ?",
+            (camion_id,),
+        ).fetchone()
+        return _a_dict(fila)
+    except OverflowError:
+        return None
 
 
 def planes_de_camion(camion_id: int) -> list:
-    """Devuelve los planes de mantencion del camion como lista de dict.
-
-    Un camion sin planes devuelve una lista vacia.
-    """
+    """Devuelve los planes de mantencion del camion como lista de dict."""
     filas = get_db().execute(
         "SELECT id, camion_id, tipo, tipo_calculo, "
         "       intervalo_km, km_ultima_mantencion, umbral_aviso_km, "
@@ -53,12 +48,7 @@ def planes_de_camion(camion_id: int) -> list:
 
 
 def guardar_registro_kilometraje(camion_id: int, conductor_id: int, kilometraje: int) -> int:
-    """Inserta el registro y actualiza km_actual del camion.
-
-    Las dos operaciones van en una misma transaccion: si una falla, no se
-    guarda ninguna (el bloque "with" hace commit al terminar bien y
-    rollback si hay un error). Devuelve el id del registro creado.
-    """
+    """Inserta el registro y actualiza km_actual del camion."""
     conexion = get_db()
     with conexion:
         cursor = conexion.execute(
@@ -74,11 +64,7 @@ def guardar_registro_kilometraje(camion_id: int, conductor_id: int, kilometraje:
 
 
 def actualizar_estado_camion(camion_id: int, estado: str) -> None:
-    """Guarda el nuevo estado del camion.
-
-    Los valores validos los controla la base de datos (CHECK en schema.sql):
-    operativo, alerta_temprana o mantencion_vencida.
-    """
+    """Guarda el nuevo estado del camion."""
     conexion = get_db()
     with conexion:
         conexion.execute(
