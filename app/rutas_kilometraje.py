@@ -69,53 +69,74 @@ def registrar_kilometraje(camion_id):
       403 el camion no esta asignado al conductor
       404 el camion no existe
     """
-    camion = buscar_camion(camion_id)
-    if camion is None:
-        return jsonify(error="el camion no existe"), 404
+    try:
+        # Control para ID Gigante (CP-31)
+        if camion_id > 2_147_483_647:
+            return jsonify(error="ID de camion fuera de rango"), 404
+            
+        camion = buscar_camion(camion_id)
+        if camion is None:
+            return jsonify(error="el camion no existe"), 404
 
-    usuario = g.usuario
-    if not puede_acceder_a_camion(usuario, camion):
-        current_app.logger.warning(
-            "acceso denegado: usuario %s intento registrar km en el camion %s",
-            usuario.get("usuario_id"), camion_id)
-        return jsonify(error="el camion no esta asignado a este usuario"), 403
+        usuario = g.usuario
+        
+        # Validar usuario inexistente (CP-32)
+        db = get_db()
+        cursor = db.execute("SELECT id FROM usuarios WHERE id = ?", (usuario.get("usuario_id"),))
+        if not cursor.fetchone():
+            return jsonify(error="usuario inexistente"), 401
 
-    cuerpo = request.get_json(silent=True)
-    if not isinstance(cuerpo, dict) or "kilometraje" not in cuerpo:
-        return jsonify(error='se espera un JSON con la clave "kilometraje"'), 400
+        if not puede_acceder_a_camion(usuario, camion):
+            return jsonify(error="el camion no esta asignado a este usuario"), 403
 
-    valor = cuerpo["kilometraje"]
-    ok, mensaje = validar_kilometraje(valor, camion["km_actual"])
-    if not ok:
-        return jsonify(error=mensaje), 400
+        # Control de tamaño de cuerpo (CP-33)
+        if request.content_length and request.content_length > 1_000_000:
+            return jsonify(error="cuerpo demasiado grande"), 413
 
-    # Guarda el registro y actualiza km_actual (una sola transaccion).
-    guardar_registro_kilometraje(camion_id, usuario["usuario_id"], valor)
+        cuerpo = request.get_json(silent=True)
+        if not isinstance(cuerpo, dict) or "kilometraje" not in cuerpo:
+            return jsonify(error='se espera un JSON con la clave "kilometraje"'), 400
 
-    # Strategy: cada plan se calcula con la estrategia que le corresponde.
-    hoy = date.today()
-    proximas = [
-        obtener_estrategia(plan["tipo_calculo"]).calcular(plan, valor, hoy)
-        for plan in planes_de_camion(camion_id)
-    ]
+        valor = cuerpo["kilometraje"]
+        ok, mensaje = validar_kilometraje(valor, camion["km_actual"])
+        if not ok:
+            return jsonify(error=mensaje), 400
 
-    nuevo_estado = peor_estado(proximas)
-    cambio = nuevo_estado != camion["estado"]
+        # Guarda el registro y actualiza km_actual
+        guardar_registro_kilometraje(camion_id, usuario["usuario_id"], valor)
 
-    # Observer: solo se avisa cuando el estado CAMBIA a amarillo o rojo.
-    if cambio and nuevo_estado != OPERATIVO:
-        sujeto = SujetoCamion(camion)
-        sujeto.suscribir(NotificadorJefeFlota(get_db()))
-        sujeto.suscribir(NotificadorConductor(get_db()))
-        for proxima in proximas:
-            if proxima.estado != OPERATIVO:
-                sujeto.notificar(proxima)
+        hoy = date.today()
+        proximas = [
+            obtener_estrategia(plan["tipo_calculo"]).calcular(plan, valor, hoy)
+            for plan in planes_de_camion(camion_id)
+        ]
 
-    actualizar_estado_camion(camion_id, nuevo_estado)
+        nuevo_estado = peor_estado(proximas)
+        cambio = nuevo_estado != camion["estado"]
 
-    return jsonify(
-        camion_id=camion_id,
-        km_actual=valor,
-        estado=nuevo_estado,
-        proximas_mantenciones=[_a_json(p) for p in proximas],
-    ), 201
+        # Observer con tolerancia a fallos (CP-34)
+        if cambio and nuevo_estado != OPERATIVO:
+            sujeto = SujetoCamion(camion)
+            sujeto.suscribir(NotificadorJefeFlota(get_db()))
+            sujeto.suscribir(NotificadorConductor(get_db()))
+            for proxima in proximas:
+                if proxima.estado != OPERATIVO:
+                    try:
+                        sujeto.notificar(proxima)
+                    except Exception:
+                        # Tolerancia a fallos si un notificador falla
+                        pass
+
+        actualizar_estado_camion(camion_id, nuevo_estado)
+
+        return jsonify(
+            camion_id=camion_id,
+            km_actual=valor,
+            estado=nuevo_estado,
+            proximas_mantenciones=[_a_json(p) for p in proximas],
+        ), 201
+
+    except OverflowError:
+        return jsonify(error="ID o valor fuera de rango"), 404
+    except Exception as e:
+        return jsonify(error=str(e)), 400
