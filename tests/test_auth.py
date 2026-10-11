@@ -174,3 +174,24 @@ def test_cp_13_la_contrasena_se_guarda_con_hash():
             assert verificar_contrasena(
                 hash_guardado, "ClaveIncorrecta123"
             ) is False
+
+def test_seg_01_token_rechazado_con_clave_diferente():
+    """SEG-01: un token no debe validarse con otra clave."""
+
+    from flask import Flask
+    from app.auth import crear_token, leer_token
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="clave-exclusiva-testing-A",
+        TOKEN_DURACION_SEG=3600
+    )
+
+    with app.app_context():
+        token = crear_token(1, "conductor")
+
+        assert leer_token(token) is not None
+
+        app.config["SECRET_KEY"] = "clave-exclusiva-testing-B"
+
+        assert leer_token(token) is None
