@@ -5,7 +5,11 @@ Responsable: Integrante C.
 Incluye el hash de contrasenas, la emision y lectura del token de sesion
 y el endpoint POST /login.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, current_app, request
+from itsdangerous import URLSafeTimedSerializer
+from itsdangerous import BadSignature, SignatureExpired
+from werkzeug.security import generate_password_hash, check_password_hash
+from .repositorio import buscar_usuario_por_nombre
 
 bp = Blueprint("auth", __name__)
 
@@ -16,42 +20,94 @@ def hash_contrasena(contrasena: str) -> str:
     TODO (C): usar werkzeug.security.generate_password_hash.
     Nunca se guarda la contrasena en texto plano (RNF de seguridad).
     """
-    raise NotImplementedError("hash_contrasena pendiente")
+    return generate_password_hash(contrasena)
 
 
 def verificar_contrasena(hash_guardado: str, contrasena: str) -> bool:
-    """TODO (C): usar werkzeug.security.check_password_hash."""
-    raise NotImplementedError("verificar_contrasena pendiente")
+    """Verifica si la contraseña coincide con el hash guardado."""
+    return check_password_hash(hash_guardado, contrasena)
+
 
 
 def crear_token(usuario_id: int, rol: str) -> str:
-    """Crea el token firmado que el cliente envia en cada peticion.
+    """Crea un token firmado con el ID y el rol del usuario."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"]
+    )
 
-    TODO (C): usar itsdangerous.URLSafeTimedSerializer con
-    current_app.config["SECRET_KEY"]. El token lleva usuario_id y rol.
-    """
-    raise NotImplementedError("crear_token pendiente")
+    return serializer.dumps({
+        "usuario_id": usuario_id,
+        "rol": rol
+    })
+
+
 
 
 def leer_token(token: str):
-    """Devuelve {"usuario_id": ..., "rol": ...} o None si el token es
-    invalido, fue alterado o ya expiro (TOKEN_DURACION_SEG).
+    """Valida la firma y duración del token de sesión."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"]
+    )
 
-    TODO (C).
-    """
-    raise NotImplementedError("leer_token pendiente")
+    try:
+        datos = serializer.loads(
+            token,
+            max_age=current_app.config["TOKEN_DURACION_SEG"]
+        )
+
+        if not isinstance(datos, dict):
+            return None
+
+        if not isinstance(datos.get("usuario_id"), int):
+            return None
+
+        if isinstance(datos["usuario_id"], bool):
+            return None
+
+        if not isinstance(datos.get("rol"), str):
+            return None
+
+        return {
+            "usuario_id": datos["usuario_id"],
+            "rol": datos["rol"]
+        }
+
+    except (BadSignature, SignatureExpired, ValueError, TypeError):
+        return None
 
 
 @bp.post("/login")
 def login():
-    """POST /login  -  cuerpo JSON: {"usuario": "...", "contrasena": "..."}
+    """Autentica al usuario y devuelve un token de sesión."""
 
-    Respuestas esperadas:
-      200 {"token": "...", "rol": "..."}
-      400 si falta algun campo
-      401 si las credenciales no son validas (mismo mensaje para usuario
-          inexistente y para contrasena incorrecta)
+    datos = request.get_json(silent=True)
 
-    TODO (C).
-    """
-    return jsonify(error="login pendiente de implementar"), 501
+    if not isinstance(datos, dict):
+        return jsonify(error="Solicitud JSON inválida"), 400
+
+    usuario = datos.get("usuario")
+    contrasena = datos.get("contrasena")
+
+    if (
+        not isinstance(usuario, str)
+        or not usuario.strip()
+        or not isinstance(contrasena, str)
+        or not contrasena
+    ):
+        return jsonify(
+            error="Usuario y contraseña son obligatorios"
+        ), 400
+
+    registro = buscar_usuario_por_nombre(usuario.strip())
+
+    if registro is None or not verificar_contrasena(
+        registro["hash_contrasena"], contrasena
+    ):
+        return jsonify(error="Credenciales inválidas"), 401
+
+    token = crear_token(registro["id"], registro["rol"])
+
+    return jsonify(
+        token=token,
+        rol=registro["rol"]
+    ), 200
