@@ -1,15 +1,19 @@
-"""Servicio de Autenticacion: inicio de sesion (RF9).
+﻿
+"""Servicio de Autenticación: inicio de sesión (RF9).
 
-Responsable: Integrante C.
+Responsable: Yerko Morales.
 
-Incluye el hash de contrasenas, la emision y lectura del token de sesion
-y el endpoint POST /login.
+Incluye el hash de contraseñas, la emisión y lectura
+de tokens de sesión y el endpoint POST /login.
 """
+
+
 from flask import Blueprint, jsonify, current_app, request
-from itsdangerous import URLSafeTimedSerializer
-from itsdangerous import BadSignature, SignatureExpired
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import generate_password_hash, check_password_hash
+
 from .repositorio import buscar_usuario_por_nombre
+
 
 bp = Blueprint("auth", __name__)
 
@@ -24,6 +28,7 @@ def hash_contrasena(contrasena: str) -> str:
 
 
 def verificar_contrasena(hash_guardado: str, contrasena: str) -> bool:
+
     """Verifica si la contraseña coincide con el hash guardado."""
     return check_password_hash(hash_guardado, contrasena)
 
@@ -73,11 +78,12 @@ def leer_token(token: str):
         }
 
     except (BadSignature, SignatureExpired, ValueError, TypeError):
-        return None
+     return None
 
 
 @bp.post("/login")
 def login():
+
     """Autentica al usuario y devuelve un token de sesión."""
 
     datos = request.get_json(silent=True)
