@@ -74,3 +74,70 @@ Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`ap
   ![Prueba fallando](evidencias/cp06_fallando.png)
 * **Prueba Pasando (Verde):**
   ![Prueba pasando](evidencias/cp06_pasando.png)
+---
+
+### DEF-RF9-01 — Error HTTP 500 en POST /login
+
+**Responsable:** Yerko Morales
+**Módulo:** Autenticación RF9
+**Prueba asociada:** CP-10
+**Severidad:** Alta
+**Estado:** Corregido y validado
+
+#### 1. Descripción del defecto
+
+Durante la integración del módulo de autenticación RF9, el equipo detectó que el endpoint `POST /login` respondía HTTP 500, impidiendo el inicio de sesión con credenciales válidas.
+
+#### 2. Causa raíz
+
+
+La implementación original consultaba la columna `usuario` y utilizaba `contrasena`, campos que no existen en la tabla `usuarios` del esquema SQLite oficial.
+
+Los campos correctos son `nombre_usuario` y `hash_contrasena`.
+
+Al reproducir la consulta defectuosa en una base SQLite temporal se obtuvo:
+
+`sqlite3.OperationalError: no such column: usuario`
+
+Esta reproducción confirma la incompatibilidad entre la consulta SQL y la estructura de la base de datos.
+
+
+#### 3. Código antes de la corrección
+
+Archivo: `app/auth.py`
+
+La implementación original utilizaba una consulta SQL incompatible con el esquema oficial de SQLite.
+
+```python
+db = get_db()
+cursor = db.execute(
+    "SELECT * FROM usuarios WHERE usuario = ?",
+    (usuario,)
+)
+user = cursor.fetchone()
+```
+
+**Error reproducido:**
+
+```text
+sqlite3.OperationalError: no such column: usuario
+```
+
+#### 4. Código después de la corrección
+
+Archivo: `app/auth.py`
+
+Se reemplazó la consulta SQL defectuosa por la función `buscar_usuario_por_nombre()` de `app/repositorio.py`, permitiendo consultar las columnas correspondientes al esquema oficial.
+
+```python
+registro = buscar_usuario_por_nombre(usuario.strip())
+
+if registro is None or not verificar_contrasena(
+    registro["hash_contrasena"], contrasena
+):
+    return jsonify(error="Credenciales inválidas"), 401
+
+token = crear_token(registro["id"], registro["rol"])
+
+return jsonify(token=token, rol=registro["rol"]), 200
+```
