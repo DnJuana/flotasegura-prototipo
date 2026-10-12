@@ -27,13 +27,17 @@ Estado: `Pasa`, `Falla` (anotar el defecto en la bitácora) o `Pendiente`.
 | CP-17 | Km negativo o no numerico | Funcional - caso de error | RF1 | -5, 'abc', 1500.5, null | 400 en todos los casos |  | Pendiente |  | `tests/test_kilometraje.py` |
 | CP-18 | Camion inexistente | Funcional - caso de error | RF1 | id de camion que no existe | 404 |  | Pendiente |  | `tests/test_kilometraje.py` |
 | CP-19 | Registro que cruza el umbral genera alerta | Funcional - flujo completo | RF1, RF3, RF4 | km que deja al camion dentro del umbral | estado alerta_temprana y alertas creadas |  | Pendiente |  | `tests/test_kilometraje.py` |
-| CP-20 | Estado devuelve color del semaforo | Funcional | RF4 | GET estado de un camion en alerta temprana | 200 con color amarillo |  | Pendiente |  | `tests/test_estado.py` |
-| CP-21 | Cada usuario ve solo sus alertas | Seguridad | RF9 | GET /alertas como conductor | solo alertas con su destinatario_id |  | Pendiente |  | `tests/test_estado.py` |
+| CP-20 | Estado devuelve color del semaforo | Funcional | RF4 | conductor2 hace GET /camiones/2/estado (camion FLSG-22, en alerta temprana) | 200 con patente, km actual, estado y color amarillo | 200; estado alerta_temprana y color amarillo | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
+| CP-21 | Cada usuario ve solo sus alertas | Seguridad | RF9 | tres alertas para destinatarios distintos; conductor1, conductor2 y conductor3 hacen GET /alertas | cada usuario recibe solo las suyas; quien no tiene alertas recibe lista vacia | conductor1 y conductor2 reciben 1 alerta propia; conductor3 recibe lista vacia | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
 | CP-22 | Sin token se rechaza | Seguridad | RF9 | POST kilometraje sin cabecera Authorization | 401 |  | Pendiente |  | `tests/test_seguridad.py` |
 | CP-23 | Conductor no registra en camion ajeno | Seguridad | RF9 | conductor A registra km en el camion de B | 403 y ningun registro guardado |  | Pendiente |  | `tests/test_seguridad.py` |
 | CP-24 | Conductor no ve estado de camion ajeno | Seguridad | RF9 | conductor A consulta el estado del camion de B | 403 |  | Pendiente |  | `tests/test_seguridad.py` |
 | CP-25 | Inyeccion sql en login | Seguridad | RNF Seguridad | usuario = " ' OR '1'='1 " | 401, sin error 500 |  | Pendiente |  | `tests/test_seguridad.py` |
 | CP-26 | Token alterado o expirado | Seguridad | RF9 | token con un caracter cambiado, y token vencido | 401 en ambos |  | Pendiente |  | `tests/test_seguridad.py` |
+| CP-35 | Los tres colores del semaforo | Funcional | RF4 | el jefe de flota consulta un camion en cada estado (camiones 1, 2 y 3) | 200 con color verde, amarillo y rojo segun el estado | 200 en los tres; colores verde, amarillo y rojo | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
+| CP-36 | Estado de camion inexistente | Funcional - caso de error | RF4 | id 999 y un id fuera del rango de la base (99999999999999999999) | 404, sin error 500 | 404 en ambos | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
+| CP-37 | Estado y alertas exigen token | Seguridad | RF9 | sin token; firma alterada; contenido cambiado a jefe_flota con la firma del conductor | 401 en los tres casos, en /camiones/1/estado y en /alertas | 401 en los tres casos y en ambas rutas | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
+| CP-38 | Conductor no ve estado de camion ajeno | Seguridad | RF9, RNF Seguridad | conductor1 consulta su camion, el de conductor2 y el camion sin conductor; el jefe consulta el camion sin conductor | 200 en el propio, 403 en los ajenos sin datos del camion, 200 para el jefe | 200, 403, 403 y 200 | Pasa | `evidencias/cp20_cp21_cp35_a_cp38_pasando.png` | `tests/test_estado.py` |
 
 ## Cómo dejar evidencia
 
