@@ -55,11 +55,18 @@ class NotificadorJefeFlota:
     def actualizar(self, camion, plan_mantencion):
         # TODO (B): insertar en la tabla alertas (usar consultas parametrizadas).
         cursor = self.conexion.cursor()
-        mensaje = f"Alerta para jefe de Flota: Camion {camion['patente']} en estado {plan_mantencion.estado} "
-        cursor.execute(
-            "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
-            (camion['id'],plan_mantencion.plan_id, 1, plan_mantencion.estado, mensaje)
-        )
+        #busca dinamicamnete a todo los usuarios con rol de jefe_flota
+        cursor.execute("SELECT id FROM usuarios WHERE rol = 'jefe_flota'")
+        jefes = cursor.fetchall()
+        
+        mensaje= f"Alerta para jefe de Flota: camion{camion['patente']}en estado{plan_mantencion.estado}"
+        
+        for jefe in jefes:
+            jefe_id= jefe[0]
+            cursor.execute(
+                "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
+                (camion['id'], plan_mantencion.plan_id, jefe_id, plan_mantencion.estado, mensaje)
+            )
         self.conexion.commit()
 
 

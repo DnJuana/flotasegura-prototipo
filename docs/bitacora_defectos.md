@@ -41,10 +41,11 @@ Copiar este bloque por cada defecto.
 Este documento registra los defectos encontrados durante el ciclo de pruebas unitarias e integración, siguiendo las directrices de trazabilidad del proyecto.
 
 ---
-### Error de inicialización en ProximaMantencion
+# Bitácora de Defectos — Módulo de Alertas (Patrón Observer)
+
 * **Responsable / Integrante:** Michael Rabelo (Integrante B)
 * **Módulo:** `app/alertas.py` (Patrón Observer)
-* **Descripción:** ...
+
 ### DEF-01: Incompatibilidad en columnas de inserción y restricciones de Llaves Foráneas (FK) en la tabla `alertas`
 
 - **Fecha de Detección**: Octubre de 2026
@@ -58,13 +59,24 @@ Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`ap
 3. `sqlite3.IntegrityError: FOREIGN KEY constraint failed`
 
 #### 2. Causa Raíz
-* **Desalineación con el Esquema**: La implementación inicial de los métodos `actualizar` en los notificadores (`NotificadorJefeFlota` y `NotificadorConductor`) realizaba consultas `INSERT` incompletas que omitían campos obligatorios exigidos por el contrato de la base de datos (`plan_id`, `destinatario_id`, `nivel`).
-* **Restricciones de Integridad Referencial**: Las pruebas enviaban IDs simulados que no existían previamente en las tablas relacionales del entorno de prueba (`usuarios`, `camiones`, `planes_mantencion`), lo que activaba los bloqueos por *Foreign Key*.
+- **Desalineación con el Esquema**: La implementación inicial de los métodos `actualizar` en los notificadores (`NotificadorJefeFlota` y `NotificadorConductor`) realizaba consultas `INSERT` incompletas que omitían campos obligatorios exigidos por el contrato de la base de datos (`plan_id`, `destinatario_id`, `nivel`).
+- **Restricciones de Integridad Referencial**: Las pruebas enviaban IDs simulados que no existían previamente en las tablas relacionales del entorno de prueba (`usuarios`, `camiones`, `planes_mantencion`), lo que activaba los bloqueos por *Foreign Key*.
 
-#### 3. Solución Aplicada
-1. **Actualización de Consultas SQL**: Se reestructuraron las consultas parametrizadas en `app/alertas.py` para insertar de manera correcta todos los atributos requeridos por el esquema (`camion_id`, `plan_id`, `destinatario_id`, `nivel`, `mensaje`).
-2. **Preparación de Datos en Pruebas (`Fixtures`)**: Se modificaron las funciones de prueba en `tests/test_alertas.py` para insertar previamente los registros dependientes necesarios (usuarios con roles válidos, camiones y planes de mantención) mediante consultas del tipo `INSERT OR REPLACE` antes de ejecutar la notificación del sujeto.
-
+#### 3. Solución Aplicada y Código de Cambio
+- **Código ANTES:**
+  ```python
+  # Inserción fija y parcial que omitía llaves y campos requeridos
+  cursor.execute(
+      "INSERT INTO alertas (camion_id, mensaje) VALUES (?, ?)",
+      (camion['id'], mensaje)
+  )
+- **Código DESPUES:**
+  # Inserción completa parametrizada respetando el esquema relacional
+  cursor.execute(
+      "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
+      (camion['id'], plan_mantencion.plan_id, jefe_id, plan_mantencion.estado, mensaje)
+  )
+  
 #### 4. Verificación y Estado
 - **Estado**: Resuelto y Verificado.
 - **Evidencia**: Tras la corrección y el reenvío de los cambios al repositorio remoto, todas las pruebas unitarias asociadas al Patrón Observer (`CP-06`, `CP-07`, `CP-08`, `CP-09`) completaron su ejecución con éxito, obteniendo el estado de compilación aprobada en GitHub Actions.
