@@ -1,71 +1,119 @@
-﻿"""Servicio de Autenticacion: inicio de sesion (RF9)."""
-from flask import Blueprint, jsonify, request, current_app
-from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+﻿
+"""Servicio de Autenticación: inicio de sesión (RF9).
 
-try:
-    from app.db import get_db
-except ImportError:
-    from .db import get_db
+Responsable: Yerko Morales.
+
+Incluye el hash de contraseñas, la emisión y lectura
+de tokens de sesión y el endpoint POST /login.
+"""
+
+
+from flask import Blueprint, jsonify, current_app, request
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from .repositorio import buscar_usuario_por_nombre
+
 
 bp = Blueprint("auth", __name__)
 
 
 def hash_contrasena(contrasena: str) -> str:
+    """Devuelve el hash de la contrasena para guardarlo en la base.
+
+    TODO (C): usar werkzeug.security.generate_password_hash.
+    Nunca se guarda la contrasena en texto plano (RNF de seguridad).
+    """
     return generate_password_hash(contrasena)
 
 
 def verificar_contrasena(hash_guardado: str, contrasena: str) -> bool:
+
+    """Verifica si la contraseña coincide con el hash guardado."""
     return check_password_hash(hash_guardado, contrasena)
 
 
+
 def crear_token(usuario_id: int, rol: str) -> str:
-    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-    return serializer.dumps({"usuario_id": usuario_id, "rol": rol})
+    """Crea un token firmado con el ID y el rol del usuario."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"]
+    )
+
+    return serializer.dumps({
+        "usuario_id": usuario_id,
+        "rol": rol
+    })
+
+
 
 
 def leer_token(token: str):
-    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-    duracion = current_app.config.get("TOKEN_DURACION_SEG", 3600)
+    """Valida la firma y duración del token de sesión."""
+    serializer = URLSafeTimedSerializer(
+        current_app.config["SECRET_KEY"]
+    )
+
     try:
-        datos = serializer.loads(token, max_age=duracion)
-        if isinstance(datos, dict) and "usuario_id" in datos and "rol" in datos:
-            return datos
-        return None
-    except Exception:
-        return None
+        datos = serializer.loads(
+            token,
+            max_age=current_app.config["TOKEN_DURACION_SEG"]
+        )
+
+        if not isinstance(datos, dict):
+            return None
+
+        if not isinstance(datos.get("usuario_id"), int):
+            return None
+
+        if isinstance(datos["usuario_id"], bool):
+            return None
+
+        if not isinstance(datos.get("rol"), str):
+            return None
+
+        return {
+            "usuario_id": datos["usuario_id"],
+            "rol": datos["rol"]
+        }
+
+    except (BadSignature, SignatureExpired, ValueError, TypeError):
+     return None
 
 
 @bp.post("/login")
 def login():
+
+    """Autentica al usuario y devuelve un token de sesión."""
+
     datos = request.get_json(silent=True)
-    if not datos or not isinstance(datos, dict):
-        return jsonify(error="Cuerpo JSON invalido o ausente"), 400
+
+    if not isinstance(datos, dict):
+        return jsonify(error="Solicitud JSON inválida"), 400
 
     usuario = datos.get("usuario")
     contrasena = datos.get("contrasena")
 
-    if not usuario or not contrasena:
-        return jsonify(error="Faltan campos requeridos"), 400
+    if (
+        not isinstance(usuario, str)
+        or not usuario.strip()
+        or not isinstance(contrasena, str)
+        or not contrasena
+    ):
+        return jsonify(
+            error="Usuario y contraseña son obligatorios"
+        ), 400
 
-    db = get_db()
-    cursor = db.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,))
-    user = cursor.fetchone()
+    registro = buscar_usuario_por_nombre(usuario.strip())
 
-    if user is None:
-        return jsonify(error="Credenciales invalidas"), 401
+    if registro is None or not verificar_contrasena(
+        registro["hash_contrasena"], contrasena
+    ):
+        return jsonify(error="Credenciales inválidas"), 401
 
-    try:
-        hash_guardado = user["contrasena"]
-        user_id = user["id"]
-        rol = user["rol"]
-    except (TypeError, KeyError):
-        user_id = user[0]
-        hash_guardado = user[2]
-        rol = user[3]
+    token = crear_token(registro["id"], registro["rol"])
 
-    if not verificar_contrasena(hash_guardado, contrasena):
-        return jsonify(error="Credenciales invalidas"), 401
-
-    token = crear_token(user_id, rol)
-    return jsonify(token=token, rol=rol), 200
+    return jsonify(
+        token=token,
+        rol=registro["rol"]
+    ), 200
