@@ -88,68 +88,117 @@ Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`ap
   ![Prueba pasando](evidencias/cp06_pasando.png)
 ---
 
-### DEF-RF9-01 — Error HTTP 500 en POST /login
 
-**Responsable:** Yerko Morales
-**Módulo:** Autenticación RF9
-**Prueba asociada:** CP-10
-**Severidad:** Alta
-**Estado:** Corregido y validado
+## DEF-D1: Error 500 por Desbordamiento de Enteros en `camion_id` (SQLite Overflow)
+* **Requerimiento:** RF1 (Registro de Kilometraje)
+* **Caso de Prueba:** CP-31
+* **Severidad:** Media / Alta
+* **Descripción:** Al enviar un `camion_id` numérico fuera del rango estándar de enteros de SQLite (ej. `99999999999999999999`), el motor lanzaba una excepción `OverflowError` no capturada, respondiendo con un error HTTP `500 Internal Server Error`.
 
-#### 1. Descripción del defecto
-
-Durante la integración del módulo de autenticación RF9, el equipo detectó que el endpoint `POST /login` respondía HTTP 500, impidiendo el inicio de sesión con credenciales válidas.
-
-#### 2. Causa raíz
-
-
-La implementación original consultaba la columna `usuario` y utilizaba `contrasena`, campos que no existen en la tabla `usuarios` del esquema SQLite oficial.
-
-Los campos correctos son `nombre_usuario` y `hash_contrasena`.
-
-Al reproducir la consulta defectuosa en una base SQLite temporal se obtuvo:
-
-`sqlite3.OperationalError: no such column: usuario`
-
-Esta reproducción confirma la incompatibilidad entre la consulta SQL y la estructura de la base de datos.
-
-
-#### 3. Código antes de la corrección
-
-Archivo: `app/auth.py`
-
-La implementación original utilizaba una consulta SQL incompatible con el esquema oficial de SQLite.
-
+#### Código Antes (Defectuoso)
 ```python
-db = get_db()
-cursor = db.execute(
-    "SELECT * FROM usuarios WHERE usuario = ?",
-    (usuario,)
-)
-user = cursor.fetchone()
-```
+@app.route('/camiones/<int:camion_id>/kilometraje', methods=['POST'])
+def registrar_kilometraje(camion_id):
+    # Consulta directa sin validar rangos
+    camion = repositorio.obtener_camion_por_id(camion_id)
+    if not camion:
+        return jsonify({"error": "Camión no encontrado"}), 404
 
-**Error reproducido:**
+### Código Corrigido
+ @app.route('/camiones/<int:camion_id>/kilometraje', methods=['POST'])
+def registrar_kilometraje(camion_id):
+    # Validar límite de enteros de SQLite antes de consultar la BD
+    if camion_id > 9223372036854775807 or camion_id < 1:
+        return jsonify({"error": "ID de camión fuera de rango válido"}), 404
+    
+    try:
+        camion = repositorio.obtener_camion_por_id(camion_id)
+    except (OverflowError, ValueError):
+        return jsonify({"error": "ID de camión inválido"}), 404
 
-```text
-sqlite3.OperationalError: no such column: usuario
-```
+    if not camion:
+        return jsonify({"error": "Camión no encontrado"}), 404
 
-#### 4. Código después de la corrección
+## DEF-D2: Falta de Verificación de Integridad de Usuario en Decorador JWT ##
+Requerimiento: RF1, RF9 (Autenticación y Autorización RBAC)
 
-Archivo: `app/auth.py`
+Caso de Prueba: CP-32
 
-Se reemplazó la consulta SQL defectuosa por la función `buscar_usuario_por_nombre()` de `app/repositorio.py`, permitiendo consultar las columnas correspondientes al esquema oficial.
+Severidad: Alta (Seguridad)
 
-```python
-registro = buscar_usuario_por_nombre(usuario.strip())
+Descripción: El decorador @login_requerido solo validaba la firma del token JWT (jwt.decode). Si un usuario activo obtenía un token y posteriormente era eliminado de la base de datos, el token continuaba permitiéndole operar.
 
-if registro is None or not verificar_contrasena(
-    registro["hash_contrasena"], contrasena
-):
-    return jsonify(error="Credenciales inválidas"), 401
+def login_requerido(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = obtener_token_header()
+        datos = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        g.usuario_id = datos["usuario_id"]
+        g.rol = datos["rol"]
+        return f(*args, **kwargs)
+    return decorated
 
-token = crear_token(registro["id"], registro["rol"])
+## Código Después (Corregido)
+def login_requerido(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = obtener_token_header()
+        datos = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        
+        # Consulta explícita a la BD para verificar existencia real del usuario
+        usuario = repositorio.obtener_usuario_por_id(datos["usuario_id"])
+        if not usuario or not usuario.get("activo", True):
+            return jsonify({"error": "Usuario inactivo o no encontrado"}), 401
+            
+        g.usuario_id = datos["usuario_id"]
+        g.rol = datos["rol"]
+        return f(*args, **kwargs)
+    return decorated
 
-return jsonify(token=token, rol=registro["rol"]), 200
-```
+DEF-D3: Ausencia de Límite en Tamaño de Payload HTTP (Vulnerabilidad DoS)
+Requerimiento: RF1 (Robustez API)
+
+Caso de Prueba: CP-33
+
+Severidad: Media
+
+Descripción: La ruta permitía solicitudes HTTP POST con payloads arbitrariamente grandes, permitiendo consumo excesivo de recursos antes de procesar la solicitud.
+
+## Código Antes (Defectuoso)
+@app.route('/camiones/<int:camion_id>/kilometraje', methods=['POST'])
+def registrar_kilometraje(camion_id):
+    datos = request.get_json()
+    # Procesamiento sin validar el tamaño máximo del cuerpo HTTP
+
+# Configuración global en app.py / rutas_kilometraje.py
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # Límite de 1 MB
+
+## Código Después (Corregido)
+@app.errorhandler(413)
+def payload_demasiado_grande(error):
+    return jsonify({"error": "El payload excede el tamaño máximo permitido (1 MB)"}), 413
+
+DEF-D4: Excepciones No Capturadas en Observadores de Notificación
+Requerimiento: RF1, RF4 (Tolerancia a Fallos / Patrón Observer)
+
+Caso de Prueba: CP-34
+
+Severidad: Alta (Resiliencia)
+
+Descripción: Al cambiar el estado de un camión, si uno de los suscriptores (NotificadorJefeFlota o NotificadorConductor) lanzaba una excepción por fallo de red o servicio externo, interrumpía el flujo del endpoint arrojando 500 y dejando en duda el guardado del kilometraje.
+
+Código Antes (Defectuoso)
+if nuevo_estado in ['alerta_temprana', 'mantencion_vencida']:
+    # Si notificar() falla, la ruta completa arroja 500 Internal Server Error
+    sujeto_camion.notificar(camion_id, nuevo_estado, nuevo_km)
+
+## Código Después (Corregido)
+if nuevo_estado in ['alerta_temprana', 'mantencion_vencida']:
+    try:
+        sujeto_camion.notificar(camion_id, nuevo_estado, nuevo_km)
+    except Exception as e:
+        # Aislamiento del fallo del servicio de notificaciones
+        logger.error(f"Error no crítico en observador de notificaciones: {e}")
+
+return jsonify({"mensaje": "Kilometraje registrado exitosamente", "estado": nuevo_estado}), 201
+Resultado Obtenido: La transacción del kilometraje se guarda correctamente y retorna 201 Created tolerando fallos de red.
