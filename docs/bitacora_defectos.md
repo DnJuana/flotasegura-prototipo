@@ -1,47 +1,32 @@
 # Bitácora de defectos
 
-Responsable de mantenerla: Integrante F. Cada integrante anota los defectos que encuentre en sus pruebas.
+Registro de los defectos reales encontrados al ejecutar las pruebas del prototipo, con su causa, el código antes y después de la corrección y la evidencia de la nueva ejecución.
 
-La rúbrica pide al menos 3 defectos **reales**, encontrados al ejecutar las pruebas. Aquí solo se registra lo que efectivamente falló. Ver el procedimiento en `REPARTO.md`.
+Mantenida por el Integrante F (Bryan Martinez). Restaurada y consolidada por Felipe Aravena el 13-10-2026, después de que una subida sobrescribiera el archivo (ver `docs/registro_incidencias.md`). Cada defecto lo documenta quien lo corrigió.
 
-Severidad: `Crítica` (compromete seguridad o datos), `Alta` (el módulo entrega un resultado incorrecto), `Media`, `Baja`.
+Severidad: `Crítica` (compromete seguridad o datos), `Alta` (el módulo entrega un resultado incorrecto o no funciona), `Media`, `Baja`.
 
 ## Resumen
 
-| ID | Prueba que lo detectó | Descripción | Causa | Severidad | Commit con la falla | Commit de la corrección | Nueva ejecución |
-|---|---|---|---|---|---|---|---|
-| DEF-01 |  |  |  |  |  |  |  |
+| ID | Prueba que lo detectó | Descripción | Causa | Severidad | Estado | Documentado por |
+|---|---|---|---|---|---|---|
+| DEF-01 | CP-06, CP-07 | Las inserciones en la tabla `alertas` omitían columnas obligatorias y violaban llaves foráneas | Consulta `INSERT` incompleta respecto del esquema; datos de prueba sin las filas relacionadas | Alta | Corregido y verificado (CP-06 a CP-09 pasan) | Michael Rabelo |
+| DEF-RF9-01 | CP-10 | `POST /login` respondía HTTP 500 con cualquier credencial | La consulta usaba las columnas `usuario` y `contrasena`, que no existen (`nombre_usuario`, `hash_contrasena`) | Alta | Corregido y verificado (CP-10 a CP-13 y CP-25 pasan) | Yerko Morales |
+| DEF-D1 a DEF-D4 | CP-31 a CP-34 | Defectos de validación de entradas y tolerancia a fallos en el registro de kilometraje (id fuera de rango, token de usuario inexistente, cuerpo demasiado grande, falla de un notificador) | Ver `INFORME_INTEGRANTE_D.md` | Media a Alta | Corregidos y verificados (CP-31 a CP-34 pasan). Pendiente trasladar el detalle con código antes y después a esta bitácora | Widjy Marcellus |
+
+## Controles ISO/IEC 27001 vinculados a las correcciones de seguridad
+
+Numeración del Anexo A de ISO/IEC 27001:2013. Selección inicial de Bryan Martinez; completada por Felipe Aravena.
+
+| Control | Defecto | Riesgo al que responde |
+|---|---|---|
+| **A.9.4.2 — Procedimientos seguros de inicio de sesión** | DEF-RF9-01 | Mientras el login respondía 500, ningún usuario podía autenticarse y el error exponía detalles internos en el registro del servidor. La corrección deja un único mensaje para usuario inexistente y contraseña incorrecta, valida los campos de entrada y no revela cuál de los dos falló. |
+| **A.9.4.1 — Restricción del acceso a la información** | DEF-D2 (token firmado de un usuario que ya no existe) | Un token válido podía seguir usándose después de eliminar al usuario. La corrección en `app/permisos.py` verifica que el usuario del token exista en la base antes de autorizar, y responde 401 si no. |
+| **A.14.2.5 — Principios de ingeniería de sistemas seguros** | DEF-D1 y DEF-D3 (id fuera de rango, cuerpo mayor a 1 MB) | Entradas no validadas provocaban errores 500 o permitían agotar recursos del servidor. Las correcciones en `app/rutas_kilometraje.py` y `app/repositorio.py` validan rango y tamaño antes de procesar, y responden 404 y 413. |
 
 ## Detalle por defecto
 
-Copiar este bloque por cada defecto.
-
-### DEF-01 — título
-
-- **Prueba que lo detectó:** CP-XX
-- **Descripción:** qué se esperaba y qué ocurrió.
-- **Causa:** por qué ocurrió.
-- **Severidad:**
-- **Evidencia de la falla:** `docs/evidencias/CP-XX_falla.png`
-
-**Código antes**
-
-```python
-```
-
-**Código después**
-
-```python
-```
-
-- **Evidencia de la nueva ejecución:** `docs/evidencias/CP-XX_pasa.png`
-- **Control ISO 27000 relacionado** (solo si es un defecto de seguridad): control, y riesgo al que responde.
-# Bitácora de Defectos - Proyecto FlotaSegura
-
-Este documento registra los defectos encontrados durante el ciclo de pruebas unitarias e integración, siguiendo las directrices de trazabilidad del proyecto.
-
----
-# Bitácora de Defectos — Módulo de Alertas (Patrón Observer)
+### Defectos del módulo de alertas (Integrante B)
 
 * **Responsable / Integrante:** Michael Rabelo (Integrante B)
 * **Módulo:** `app/alertas.py` (Patrón Observer)
@@ -70,22 +55,27 @@ Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`ap
       "INSERT INTO alertas (camion_id, mensaje) VALUES (?, ?)",
       (camion['id'], mensaje)
   )
+  ```
 - **Código DESPUES:**
+  ```python
   # Inserción completa parametrizada respetando el esquema relacional
   cursor.execute(
       "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
       (camion['id'], plan_mantencion.plan_id, jefe_id, plan_mantencion.estado, mensaje)
   )
-  
+  ```
+
 #### 4. Verificación y Estado
 - **Estado**: Resuelto y Verificado.
 - **Evidencia**: Tras la corrección y el reenvío de los cambios al repositorio remoto, todas las pruebas unitarias asociadas al Patrón Observer (`CP-06`, `CP-07`, `CP-08`, `CP-09`) completaron su ejecución con éxito, obteniendo el estado de compilación aprobada en GitHub Actions.
 
 #### 5. Evidencias
+
 * **Prueba Fallando:**
   ![Prueba fallando](evidencias/cp06_fallando.png)
 * **Prueba Pasando (Verde):**
   ![Prueba pasando](evidencias/cp06_pasando.png)
+
 ---
 
 
@@ -155,6 +145,7 @@ def login_requerido(f):
         return f(*args, **kwargs)
     return decorated
 
+<<<<<<< HEAD
 DEF-D3: Ausencia de Límite en Tamaño de Payload HTTP (Vulnerabilidad DoS)
 Requerimiento: RF1 (Robustez API)
 
@@ -202,3 +193,12 @@ if nuevo_estado in ['alerta_temprana', 'mantencion_vencida']:
 
 return jsonify({"mensaje": "Kilometraje registrado exitosamente", "estado": nuevo_estado}), 201
 Resultado Obtenido: La transacción del kilometraje se guarda correctamente y retorna 201 Created tolerando fallos de red.
+=======
+return jsonify(token=token, rol=registro["rol"]), 200
+```
+
+#### 5. Verificación
+
+- **Pruebas que lo confirman:** CP-10 a CP-13 (`tests/test_auth.py`) y CP-25 (`tests/test_seguridad.py`), todas pasan en la suite actual.
+- **Evidencia de la nueva ejecución:** pendiente de captura por Yerko Morales (`docs/evidencias/cp10_pasando.png`). La captura de la falla puede obtenerse ejecutando CP-10 sobre el commit anterior a la corrección.
+>>>>>>> 5bd2fa9425054a209b22d60a5e21de0a4be60531
