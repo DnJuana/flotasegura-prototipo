@@ -46,7 +46,7 @@ class SujetoCamion:
             observador.actualizar(self.camion, plan_mantencion)
 
 
-class NotificadorJefeFlota:
+class NotificadorJefeFlota(ObservadorMantencion):
     """Guarda una alerta dirigida a cada usuario con rol jefe_flota."""
 
     def __init__(self, db_conexion):
@@ -59,7 +59,7 @@ class NotificadorJefeFlota:
         cursor.execute("SELECT id FROM usuarios WHERE rol = 'jefe_flota'")
         jefes = cursor.fetchall()
         
-        mensaje= f"Alerta para jefe de Flota: camion{camion['patente']}en estado{plan_mantencion.estado}"
+        mensaje= f"Alerta para jefe de Flota: camion {camion['patente']} en estado {plan_mantencion.estado}"
         
         for jefe in jefes:
             jefe_id= jefe[0]
@@ -70,7 +70,7 @@ class NotificadorJefeFlota:
         self.conexion.commit()
 
 
-class NotificadorConductor:
+class NotificadorConductor(ObservadorMantencion):
     """Guarda una alerta dirigida al conductor asignado al camion."""
 
     def __init__(self, db_conexion):
@@ -83,7 +83,7 @@ class NotificadorConductor:
         cursor = self.conexion.cursor()
         mensaje = f"Estimado conductor, su camión {camion['patente']} requiere atención: {plan_mantencion.estado}"
         cursor.execute(
-            "INSERT INTO alertas (camion_id,plan_id, destinatario_id, nivel, mensaje) VALUES(?,?,?,?,?)",
+            "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES(?,?,?,?,?)",
             (camion['id'], plan_mantencion.plan_id, camion['conductor_id'], plan_mantencion.estado, mensaje)
         )
         self.conexion.commit()

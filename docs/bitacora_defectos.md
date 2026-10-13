@@ -43,45 +43,84 @@ Este documento registra los defectos encontrados durante el ciclo de pruebas uni
 ---
 # Bitácora de Defectos — Módulo de Alertas (Patrón Observer)
 
-* **Responsable / Integrante:** Michael Rabelo (Integrante B)
-* **Módulo:** `app/alertas.py` (Patrón Observer)
+- **Responsable / Integrante:** Michael Rabelo
+- **Módulo:** `app/alertas.py` (Patrón Observer)
 
-### DEF-01: Incompatibilidad en columnas de inserción y restricciones de Llaves Foráneas (FK) en la tabla `alertas`
+---
+
+### Tabla Resumen de Defectos
+
+| ID | Módulo / Componente | Descripción Resumida | Severidad | Estado |
+| :--- | :--- | :--- | :--- | :--- |
+| **DEF-01** | `app/alertas.py` | Incompatibilidad de columnas y llaves foráneas en inserción de `alertas` | Alta | Resuelto |
+| **DEF-02** | `app/alertas.py` | Asignación de destinatario con ID fijo (`1`) en `NotificadorJefeFlota` | Media | Resuelto |
+
+---
+
+DEF-01: Incompatibilidad en columnas de inserción y restricciones de Llaves Foráneas (FK) en la tabla `alertas`
 
 - **Fecha de Detección**: Octubre de 2026
 - **Pruebas Asociadas**: `test_cp_06_al_cruzar_umbral_se_alerta_a_jefe_y_conductor`, `test_cp_07_camion_sin_conductor_solo_alerta_al_jefe`
-- **Severidad**: Alta (Bloqueaba el pipeline de integración continua en GitHub Actions)
+- **Severidad**: Alta (Bloqueaba la ejecución del pipeline)
 
-#### 1. Descripción del Problema (Fallo)
-Al ejecutar inicialmente el conjunto de pruebas para el servicio de alertas (`app/alertas.py`), el servidor de pruebas (`pytest`) arrojó múltiples errores de integridad en SQLite:
-1. `sqlite3.OperationalError: table alertas has no column named tipo`
-2. `sqlite3.IntegrityError: NOT NULL constraint failed: alertas.plan_id` / `destinatario_id` / `nivel`
-3. `sqlite3.IntegrityError: FOREIGN KEY constraint failed`
+ 1. Descripción del Problema (Fallo)
+Al ejecutar el conjunto de pruebas para el servicio de alertas (`app/alertas.py`), el servidor de pruebas (`pytest`) arrojaba errores de SQLite por columnas faltantes (`plan_id`, `nivel`, `destinatario_id`) debido a inserciones incompletas.
 
-#### 2. Causa Raíz
-- **Desalineación con el Esquema**: La implementación inicial de los métodos `actualizar` en los notificadores (`NotificadorJefeFlota` y `NotificadorConductor`) realizaba consultas `INSERT` incompletas que omitían campos obligatorios exigidos por el contrato de la base de datos (`plan_id`, `destinatario_id`, `nivel`).
-- **Restricciones de Integridad Referencial**: Las pruebas enviaban IDs simulados que no existían previamente en las tablas relacionales del entorno de prueba (`usuarios`, `camiones`, `planes_mantencion`), lo que activaba los bloqueos por *Foreign Key*.
+ 2. Causa Raíz
+- **Desalineación con el Esquema**: La implementación inicial realizaba consultas `INSERT` incompletas que omitían campos obligatorios exigidos por el contrato de la base de datos.
 
-#### 3. Solución Aplicada y Código de Cambio
-- **Código ANTES:**
-  ```python
-  # Inserción fija y parcial que omitía llaves y campos requeridos
-  cursor.execute(
-      "INSERT INTO alertas (camion_id, mensaje) VALUES (?, ?)",
-      (camion['id'], mensaje)
-  )
-- **Código DESPUES:**
-  # Inserción completa parametrizada respetando el esquema relacional
-  cursor.execute(
-      "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
-      (camion['id'], plan_mantencion.plan_id, jefe_id, plan_mantencion.estado, mensaje)
-  )
-  
-#### 4. Verificación y Estado
-- **Estado**: Resuelto y Verificado.
-- **Evidencia**: Tras la corrección y el reenvío de los cambios al repositorio remoto, todas las pruebas unitarias asociadas al Patrón Observer (`CP-06`, `CP-07`, `CP-08`, `CP-09`) completaron su ejecución con éxito, obteniendo el estado de compilación aprobada en GitHub Actions.
+ 3. Código ANTES:
+```python
+# Inserción parcial e incompleta que omitía campos requeridos por la tabla
+cursor.execute(
+    "INSERT INTO alertas (camion_id, mensaje) VALUES (?, ?)",
+    (camion['id'], mensaje)
+)
 
-#### 5. Evidencias
+ 4. Código DESPUÉS:
+# Inserción parametrizada que incluye todas las columnas obligatorias del esquema relacional
+cursor.execute(
+    "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
+    (camion['id'], plan_mantencion.plan_id, 1, plan_mantencion.estado, mensaje)
+)
+
+ 5. Verificación y Estado
+- Estado: Resuelto y Verificado.
+Evidencia: Las pruebas del patrón observer registraron filas correctamente en la base de datos de pruebas sin violar las restricciones del esquema.
+
+DEF-02: Destinatario fijo del Jefe de Flota en lugar de búsqueda dinámica
+Fecha de Detección: Octubre de 2026
+Pruebas Asociadas: test_cp_06_al_cruzar_umbral_se_alerta_a_jefe_y_conductor
+Severidad: Media (Mejora de arquitectura y escalabilidad del rol)
+
+ 1. Descripción del Problema (Fallo)
+El NotificadorJefeFlota utilizaba un ID de destinatario quemado o fijo (destinatario_id = 1), lo cual impedía notificar a otros administradores o adaptarse si el ID variaba en la base de datos.
+
+ 2. Causa Raíz
+Asignación Estática: Se asumía que el ID del jefe de flota siempre sería 1, omitiendo la consulta dinámica a la tabla usuarios para el rol jefe_flota.
+
+ 3. Código ANTES:
+# Asignación de destinatario estática con ID fijo
+cursor.execute(
+    "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
+    (camion['id'], plan_mantencion.plan_id, 1, plan_mantencion.estado, mensaje)
+)
+
+ 4. Código DESPUÉS:
+# Búsqueda dinámica y automatizada de todos los usuarios con rol 'jefe_flota'
+cursor.execute("SELECT id FROM usuarios WHERE rol = 'jefe_flota'")
+jefes = cursor.fetchall()
+
+for jefe in jefes:
+    jefe_id = jefe[0]
+    cursor.execute(
+        "INSERT INTO alertas (camion_id, plan_id, destinatario_id, nivel, mensaje) VALUES (?,?,?,?,?)",
+        (camion['id'], plan_mantencion.plan_id, jefe_id, plan_mantencion.estado, mensaje)
+    )
+
+ 5. Evidencias
+ Estado: Resuelto y Verificado.
+Evidencia: Las pruebas que validan las alertas al jefe de flota pasan exitosamente y notifican a todos los usuarios que poseen el rol jefe_flota registrados en la base de datos.
 * **Prueba Fallando:**
   ![Prueba fallando](evidencias/cp06_fallando.png)
 * **Prueba Pasando (Verde):**
