@@ -141,3 +141,21 @@ token = crear_token(registro["id"], registro["rol"])
 
 return jsonify(token=token, rol=registro["rol"]), 200
 ```
+
+#### 5. Evidencias de ejecución CP-10
+
+**Antes de la corrección — FAILED**
+
+Prueba CP-10 reproducida de forma controlada utilizando el código del commit histórico `475dad6` y la prueba automatizada de la versión corregida.
+
+Resultado: `FAILED` debido a `sqlite3.OperationalError: no such column: usuario`.
+
+![CP-10 fallando](evidencias/cp10_falla.png)
+
+**Después de la corrección — PASSED**
+
+Prueba CP-10 ejecutada sobre la implementación corregida del módulo RF9.
+
+Resultado: `1 passed, 4 deselected`.
+
+![CP-10 pasando](evidencias/cp10_pasa.png)
