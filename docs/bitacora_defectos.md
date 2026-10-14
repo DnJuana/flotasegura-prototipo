@@ -182,7 +182,15 @@ return jsonify(token=token, rol=registro["rol"]), 200
 #### 5. Verificación
 
 - **Pruebas que lo confirman:** CP-10 a CP-13 (`tests/test_auth.py`) y CP-25 (`tests/test_seguridad.py`), todas pasan en la suite actual.
-- **Evidencia de la nueva ejecución:** pendiente de captura por Yerko Morales (`docs/evidencias/cp10_pasando.png`). La captura de la falla puede obtenerse ejecutando CP-10 sobre el commit anterior a la corrección.
+
+- **Evidencia de la falla — CP-10:** Prueba ejecutada de forma controlada utilizando el código histórico del commit `475dad6` y la prueba CP-10 implementada posteriormente. Resultado: `FAILED`, por `sqlite3.OperationalError: no such column: usuario`.
+
+![CP-10 fallando](evidencias/cp10_falla.png)
+
+- **Evidencia de la nueva ejecución — CP-10:** Prueba ejecutada con el módulo RF9 corregido. Resultado: `PASSED` (1 prueba aprobada).
+
+![CP-10 pasando](evidencias/cp10_pasa.png)
+
 
 ---
 
