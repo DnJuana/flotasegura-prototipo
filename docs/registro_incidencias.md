@@ -1,0 +1,9 @@
+# Registro de incidencias de integración
+
+Hechos ocurridos durante la construcción del prototipo que explican cambios en el reparto de trabajo o en el historial de commits. Se registra qué pasó y cómo se resolvió, sin calificar a nadie.
+
+| Fecha | Qué ocurrió | Cómo se resolvió | Quién lo resolvió |
+|---|---|---|---|
+| 10-10-2026 | Se reescribió el historial de la rama principal (force push), lo que produjo un conflicto en dos archivos de documentación al combinar. | Se resolvió el conflicto sin pérdida de trabajo. Se acordó no reescribir commits ya publicados. | Felipe Aravena |
+| 12-10-2026 | Se detectó un error en el reparto inicial: "Jhon" y Michael Rabelo eran la misma persona, y Bryan Martinez no tenía tareas asignadas. Michael ya había implementado `app/permisos.py`. | Michael conserva alertas y permisos. A Bryan se le asignaron las pruebas de seguridad (CP-22 a CP-26), la revisión OWASP y la consolidación de la bitácora de defectos. | Felipe Aravena (coordinación) |
+| 13-10-2026 | `tests/test_seguridad.py` se subió con marcas de conflicto sin resolver, lo que impedía ejecutar la suite completa, y usaba nombres de fixtures que no existen en el proyecto (`docs/evidencias/cp22_a_cp26_fallando.png` muestra los 5 errores). En el mismo cambio se sobrescribió `docs/bitacora_defectos.md`, perdiéndose los defectos DEF-01 y DEF-RF9-01, y `docs/revision_owasp.md` quedó con categorías mal asignadas. El integrante trabajó sobre una copia descargada del repositorio y no sobre un clon, por falta de experiencia con Git. | Se quitaron las marcas y se ajustaron los nombres de fixtures en las pruebas; se restauró la bitácora desde el historial y se consolidó; se corrigió la revisión OWASP con evidencia real. Las pruebas y la primera versión de los documentos son de Bryan Martinez; la corrección de integración es de Felipe Aravena. | Felipe Aravena |
