@@ -17,10 +17,10 @@ Estado: `Pasa`, `Falla` (anotar el defecto en la bitácora) o `Pendiente`.
 | CP-07 | Camion sin conductor solo alerta al jefe | Funcional - caso limite | RF4 | camion con conductor_id nulo | solo se crea la alerta del jefe de flota, sin error |  | Pendiente |  | `tests/test_alertas.py` |
 | CP-08 | Observador desuscrito no recibe alerta | Funcional | RF4 | suscribir, desuscribir y notificar | cero alertas para ese observador |  | Pendiente |  | `tests/test_alertas.py` |
 | CP-09 | Peor estado entre varios planes | Funcional | RF4 | un plan operativo y otro vencido | mantencion_vencida |  | Pendiente |  | `tests/test_alertas.py` |
-| CP-10 | Login correcto entrega token | Funcional | RF9 | usuario y contrasena validos | 200 con token y rol |  | Pendiente |  | `tests/test_auth.py` |
-| CP-11 | Contrasena incorrecta | Seguridad - caso de error | RF9 | usuario valido con contrasena erronea | 401, mismo mensaje que para usuario inexistente |  | Pendiente |  | `tests/test_auth.py` |
-| CP-12 | Login sin campos | Funcional - caso de error | RF9 | cuerpo vacio o sin contrasena | 400 |  | Pendiente |  | `tests/test_auth.py` |
-| CP-13 | La contrasena se guarda con hash | Seguridad | RNF Seguridad | leer hash_contrasena de la base | no contiene la contrasena en texto plano |  | Pendiente |  | `tests/test_auth.py` |
+| CP-10 | Login correcto entrega token | Funcional | RF9 | usuario y contrasena validos | 200 con token y rol |  | PASA |  | `tests/test_auth.py` |
+| CP-11 | Contrasena incorrecta | Seguridad - caso de error | RF9 | usuario valido con contrasena erronea | 401, mismo mensaje que para usuario inexistente |  | PASA |  | `tests/test_auth.py` |
+| CP-12 | Login sin campos | Funcional - caso de error | RF9 | cuerpo vacio o sin contrasena | 400 |  | PASA |  | `tests/test_auth.py` |
+| CP-13 | La contrasena se guarda con hash | Seguridad | RNF Seguridad | leer hash_contrasena de la base | no contiene la contrasena en texto plano |  | PASA |  | `tests/test_auth.py` |
 | CP-14 | Registro valido | Funcional | RF1 | conductor registra un km mayor al actual en su camion | 201 y km_actual actualizado |  | Pendiente |  | `tests/test_kilometraje.py` |
 | CP-15 | Km menor al actual | Funcional - caso de error | RF1 | km inferior al ultimo registrado | 400 y km_actual sin cambios |  | Pendiente |  | `tests/test_kilometraje.py` |
 | CP-16 | Km igual al actual | Funcional - caso limite | RF1 | km identico al actual | definir y documentar la regla (aceptar o rechazar) |  | Pendiente |  | `tests/test_kilometraje.py` |
